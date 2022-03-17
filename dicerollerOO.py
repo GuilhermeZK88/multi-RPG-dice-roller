@@ -61,7 +61,7 @@ class ExplodingDie(SimpleDie):
     def roll(self, dice_ammount=1):
         """ returns list of results of dice_ammount rolls + exploded"""
         rolls = []
-        #print('explodes',self.explode,'or higher')
+        print('ExplodingDie||explodes',self.explode,'or higher')
         if self.getexplode() <= 1:
             raise ValueError('Inifinite exploding die')
         for i in range(dice_ammount):
@@ -92,7 +92,7 @@ class L5rDie(ExplodingDie): # ajeitar essa descendência (passar coisas pro
         """ Raise error if theres no reroll nor exploding die value """
         if self.explode <= self.reroll_range+1:
             raise ValueError ('Inifinite rerolling die!')
-        print('viable roll')
+        print('(L5rDie)viable roll')
 
     def get_adjust_modifier(self):
         return self.adjust_modifier
@@ -100,7 +100,7 @@ class L5rDie(ExplodingDie): # ajeitar essa descendência (passar coisas pro
     def adjustpool(self, rolled, kept):
         """ adjust pool as per L5R max 10 dice pool rules """
         modifier = 0
-        
+        print('debug||L5rDie||adjustpool(rolled,kept)',rolled,type(rolled),kept,type(kept))
         while rolled > 11 and kept < 10:
             rolled -= 2
             kept += 1
@@ -114,14 +114,14 @@ class L5rDie(ExplodingDie): # ajeitar essa descendência (passar coisas pro
         
         self.adjust_modifier = modifier
         
-        print('rolled',rolled,'kept',kept)
+        print('L5rDie.adjustpool(...)_rolled',rolled,'kept',kept)
         return (rolled, kept)
 
 
     def roll(self, to_roll, to_keep): #dice_ammount=1 precisa?
         """ returns list of results of dice_ammount rolls + exploded"""
         #print('b4 adjust')
-        to_roll, to_keep = self.adjustpool(to_roll, int(to_keep))
+        to_roll, to_keep = self.adjustpool(int(to_roll), int(to_keep))
         #print('after adjust')
         
         rolls = []
@@ -134,9 +134,9 @@ class L5rDie(ExplodingDie): # ajeitar essa descendência (passar coisas pro
                 rolls[i] += result
         rolls.sort()
         rolls.reverse()
-        print('roll do l5r')
+        print('roll do l5r',rolls)
         
-        total = sum(rolls[:to_keep])+self.get_adjust_modifier()
+        total = sum(rolls[:to_keep]) + self.get_adjust_modifier()
         return [total, rolls, self.get_adjust_modifier()]
 
 
@@ -298,24 +298,36 @@ def interpret(string):
 
 
 def dice_thrower(string_list):
-    #print(string_list)
+####falta implementar solicitar SuccessDie e solicitar PercentDie####
+    print('string_list',string_list)
     rolled_dice = []
     modifiers = 0
-    
-    for item in string_list:
-    
+
+    def howManyDie(die_notation):
+        '''given a die_notation type:string, retrieves number_of_dice tpy:int'''
         try:
-            number_of_dice = int(item.split('d')[0])
+            number_of_dice = int(item.split(die_notation)[0])
+            print('number_of_dice',number_of_dice)
         except ValueError:
-            number_of_dice = 1  
+            print('Tá dando Value Error na dice_thrower')##debugging##
+            print('debugging',item.split(die_notation)[0])##debugging##
+            number_of_dice = 1
+            
+        return number_of_dice
+
+    for item in string_list:
     
         if ('d' in item and 'k' in item):
             raise ValueError ('Conflicted notations used in a die (d and k)')
 
         elif 'd' in item: # notação 'd' -> SimpleDie, ExplodingDie
+            number_of_dice = howManyDie('d')
+            #print('d_throw(item, number_of_dice, rolled_dice), param:',item, number_of_dice, rolled_dice)
             rolled_dice = d_throw(item, number_of_dice, rolled_dice)
     
         elif 'k' in item: # notação 'k' -> L5rDie
+            number_of_dice = howManyDie('k')    
+            print('k_throw(item, number_of_dice, rolled_dice), param:',item, number_of_dice, rolled_dice)    
             rolled_dice = k_throw(item, number_of_dice, rolled_dice)
 
         else:
@@ -341,21 +353,33 @@ def d_throw(item, number_of_dice, rolled_dice):
         rolled_dice.append(SimpleDie(int(die_type)).roll(number_of_dice))
     
     #print('rolled_dice',rolled_dice)
+    return rolled_dice
     
 def k_throw(item, rolled_pool, rolled_dice):
     """ 'k' notation: d10 rolled/kept dice roll (L5r style). item:string,
     rolled_pool:int, rolled_dice:list
     """
-    #print('rolled_pool',rolled_pool)
-    kept_pool = item.split('k')[1]
+    kept_pool = ''
+    die_specs = ''
+    #print('k_throw||rolled_pool',rolled_pool)
+    after_k = item.split('k')[1]
     #print('kept_pool',kept_pool)
 
-    rolled_dice.append(L5rDie().roll(rolled_pool,kept_pool))
+    for char in after_k:
+        if char in '0123456789':
+            kept_pool += kept_pool + char
+        else:
+            die_specs += die_specs + char
+            
+    l5rDie = L5rDie(die_specs)
 
-    #print('rolled_dice',rolled_dice)
+    rolled_dice.append(l5rDie.roll(rolled_pool,kept_pool))
+
+    print('rolled_dice',rolled_dice)
+    return rolled_dice
 
 def result_presenter(rolled_dice):
-
+    print('debug||rolled_dice',rolled_dice)
     total = 0
     for elem in rolled_dice:
         if type(elem) is list:
@@ -378,7 +402,7 @@ def roll(): #keep string part before ':' as roll describer -> Attack:1d20+5 -> A
 
     
 
-
+roll()
 
 
 
