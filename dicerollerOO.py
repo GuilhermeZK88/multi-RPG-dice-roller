@@ -5,7 +5,7 @@ Created on Wed Dec 29 09:48:28 2021
 @author: Guilherme
 """
 from random import randint
-#import string || tag-> 21 março 2022 17:30
+#import string || tag-> 21 março 2022 17:30 || tag-> 21 março 2022 18:47
 
 class RollRequest(object):
     pass
