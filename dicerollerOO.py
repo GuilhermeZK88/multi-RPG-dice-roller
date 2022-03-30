@@ -8,12 +8,7 @@ from random import randint
 
 # TODO: classes devem responder rolagem com tupla (int:valor, str:info)
 
-
-class RollRequest(object):
-    pass
-
-
-class SimpleDie(RollRequest):
+class SimpleDie(object):
     """
     simple dice with arbitrary number of faces
     """
@@ -194,6 +189,7 @@ class SuccessDie(SimpleDie):
         print("success list:",success_list)
 
         return successes, str(rolls)
+
 
 class PercentDie(SimpleDie):
     """ Rolls a d100 / d%, if difficulty provided, classifies success as per
@@ -410,3 +406,8 @@ def roll():  # keep string part before ':' as roll describer -> Attack:1d20+5 ->
 
 
 #roll()
+simpledie=SimpleDie(6)   # self,faces / roll(self,dice_ammount=0)
+explodingdie=ExplodingDie(6)   # self,faces / roll(self,dice_ammount=0) /getexplode
+l5rdie=L5rDie()   # (self, faces="10") / (self, to_roll, to_keep)
+successdie=SuccessDie()   # (self, faces=10, difficulty=6, is_max_double=False) / (self, pool_size=1)
+percentdie=PercentDie()   # (self, success_chance=None, bonus_die=0) / (self, chance=None, bonus_die=0)
