@@ -6,7 +6,7 @@ Created on Wed Dec 29 09:48:28 2021
 """
 from random import randint
 
-# import string || tag-> 21 março 2022 17:30 || tag-> 21 março 2022 18:47
+# TODO: classes devem responder rolagem com tupla (int:valor, str:info)
 
 
 class RollRequest(object):
@@ -21,13 +21,13 @@ class SimpleDie(RollRequest):
     def __init__(self, faces):
         """ initialize a die instance, number of faces int, face up int"""
         self.faces = faces
-        self.face_up = randint(1, faces)  # remover esse conceito de face up?
+        self.face_up = randint(1, faces)  # remover esse conceito de face up? TODO: SIM
 
     def getfaces(self):
         """ returns number of faces in the die """
         return self.faces
 
-    def getroll(self):  # remover esse conceito de face up?
+    def getroll(self):  # remover esse conceito de face up? TODO: SIM
         """ returns what face is currently up """
         return self.face_up
 
@@ -41,9 +41,6 @@ class SimpleDie(RollRequest):
         
         return sum(rolls) , str(rolls)
 
-    def __str__(self):
-        return "simple d" + str(self.getfaces())
-
 
 class ExplodingDie(SimpleDie):
     """
@@ -54,8 +51,8 @@ class ExplodingDie(SimpleDie):
 
     def __init__(self, faces):
         """ ititialize a explodingdie instnace, explode range, fail range"""
-        self.faces = int(faces.replace("x", ""))
-        self.explode = self.getfaces() - (int(faces.count("x")) - 1)
+        self.faces = int(str(faces).replace("x", ""))
+        self.explode = self.getfaces() - (int( str(faces).count("x") ) - 1)
         self.low = 1
 
     def getexplode(self):
@@ -63,7 +60,7 @@ class ExplodingDie(SimpleDie):
         return self.explode
 
     def roll(self, dice_ammount=1):
-        """ returns list of results of dice_ammount rolls + exploded"""
+        """ returns a tuple with (int: sum_value , str: roll details)"""
         rolls = []
         print("ExplodingDie||explodes", self.explode, "or higher")
         if self.getexplode() <= 1:
@@ -74,7 +71,8 @@ class ExplodingDie(SimpleDie):
             while result >= self.getexplode():
                 result = randint(1, self.getfaces())
                 rolls[i] += result
-        return rolls
+
+        return sum(rolls) , str(rolls)
 
 
 class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
@@ -105,13 +103,7 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
     def adjustpool(self, rolled, kept):
         """ adjust pool as per L5R max 10 dice pool rules """
         modifier = 0
-        print(
-            "debug||L5rDie||adjustpool(rolled,kept)",
-            rolled,
-            type(rolled),
-            kept,
-            type(kept),
-        )
+        print(f"rolling {rolled}k{kept}")
         while rolled > 11 and kept < 10:
             rolled -= 2
             kept += 1
@@ -125,7 +117,7 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
 
         self.adjust_modifier = modifier
 
-        print("L5rDie.adjustpool(...)_rolled", rolled, "kept", kept)
+        print(f"Adjusted to: {rolled}k{kept}+{modifier}")
         return (rolled, kept)
 
     def roll(self, to_roll, to_keep):  # dice_ammount=1 precisa?
@@ -144,16 +136,15 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
                 rolls[i] += result
         rolls.sort()
         rolls.reverse()
-        print("roll do l5r", rolls)
 
         total = sum(rolls[:to_keep]) + self.get_adjust_modifier()
-        return [total, rolls, self.get_adjust_modifier()]
+        return total, str((rolls, self.get_adjust_modifier()))
 
 
 class SuccessDie(SimpleDie):
     """
     Rolls die and counts 'Successes', those over arbitrary difficulty
-    """  # trocar ordem faces-difficulty, pra se 1 parâmetro, este == diff?
+    """  # trocar ordem faces-difficulty, pra caso 1 parâmetro, este == diff?
 
     def __init__(self, faces=10, difficulty=6, is_max_double=False):
         """ initialize a die wich rolls over or under success threshold"""
@@ -162,7 +153,7 @@ class SuccessDie(SimpleDie):
         self.is_max_double = is_max_double
         self.low = 1
 
-    def roll(self, pool_size):
+    def roll(self, pool_size=1):
         """ returns successes:int, rolls:list and veredit:string """
         rolls = []
         success_list = []
@@ -191,7 +182,7 @@ class SuccessDie(SimpleDie):
         success_list.sort(), success_list.reverse()
 
         if success_die == 0 and one_count > 0:
-            print("Botch!")
+            print("BOTCH!")
 
         if one_count == 0:
             successes = sum(success_list)
@@ -200,18 +191,9 @@ class SuccessDie(SimpleDie):
         else:
             successes = sum(success_list[rolls.count(1) : -rolls.count(1)])
 
-        # print('successes:',successes,'|rolls/success_list:',rolls,success_list,\
-        #'|succDie/1s:',success_die,one_count,'|2succOnMáx:',self.is_max_double)
+        print("success list:",success_list)
 
-        print(success_list)
-
-        return (
-            "Successes:",
-            successes,
-            "Rolls:",
-            rolls,
-        )
-
+        return successes, str(rolls)
 
 class PercentDie(SimpleDie):
     """ Rolls a d100 / d%, if difficulty provided, classifies success as per
@@ -276,7 +258,7 @@ class PercentDie(SimpleDie):
             rolls.reverse()
 
         success_status = self.classify_success(rolls[0])
-        return success_status, rolls
+        return success_status, str(rolls)
 
 
 # --------------------------------------------------------
@@ -427,4 +409,4 @@ def roll():  # keep string part before ':' as roll describer -> Attack:1d20+5 ->
         return result_presenter(dice_thrower(interpret(clean_input(roll_me))))
 
 
-roll()
+#roll()
