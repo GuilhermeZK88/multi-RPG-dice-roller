@@ -16,7 +16,6 @@ class SimpleDie(object):
     def __init__(self, faces):
         """ initialize a die instance, number of faces int, face up int"""
         self.faces = faces
-        self.face_up = randint(1, faces)  # remover esse conceito de face up? TODO: SIM
 
     def getfaces(self):
         """ returns number of faces in the die """
@@ -305,9 +304,11 @@ def dice_thrower(string_list):
             number_of_dice = int(item.split(die_notation)[0])
             print("number_of_dice", number_of_dice)
         except ValueError:
-            print("Tá dando Value Error na dice_thrower")  ##debugging##
-            print("debugging", item.split(die_notation)[0])  ##debugging##
-            number_of_dice = 1
+            print("Value Error na dice_thrower", item.split(die_notation)[0])  ##debugging##
+            if item.split(die_notation)[0] == '-':
+                number_of_dice = -1
+            else:
+                number_of_dice = 1
 
         return number_of_dice
 
@@ -354,7 +355,7 @@ def d_throw(item, number_of_dice, rolled_dice):
     else:
         rolled_dice.append(SimpleDie(int(die_type)).roll(number_of_dice))
 
-    # print('rolled_dice',rolled_dice)
+    print('rolled_dice',rolled_dice)
     return rolled_dice
 
 
@@ -383,7 +384,7 @@ def k_throw(item, rolled_pool, rolled_dice):
 
 
 def result_presenter(rolled_dice):
-    print("debug||rolled_dice", rolled_dice)
+    print("result_pres||rolled_dice", rolled_dice, type(rolled_dice))
     total = 0
     for elem in rolled_dice:
         if type(elem) is list:
