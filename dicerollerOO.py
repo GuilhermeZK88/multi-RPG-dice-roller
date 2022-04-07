@@ -32,7 +32,7 @@ class SimpleDie(object):
         details = str(dice_ammount) + 'd' + str(self.getfaces()) + '=' + \
                   str(rolls) + '=' + str(sum(rolls))
         
-        return sum(rolls) , details#str(rolls)
+        return sum(rolls) , details #str(rolls)
 
 
 class ExplodingDie(SimpleDie):
@@ -76,11 +76,12 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
     when emphases roll (extra range per added 'e').
     """
 
-    def __init__(self, faces="10"):
+    def __init__(self, parameters="", faces="10"):
         """ initialize a L5r style exploding dice """
-        self.faces = int(faces.replace("x", "").replace("e", ""))
-        self.explode = self.getfaces() - (int(faces.count("x")))
-        self.reroll_range = faces.count("e")
+        #self.faces = int(faces.replace("x", "").replace("e", ""))
+        self.faces = int(faces)
+        self.explode = self.getfaces() - (int(parameters.count("x"))) #faces->parameters
+        self.reroll_range = parameters.count("e") #faces->parameters
         self.adjust_modifier = 0
         self.is_viable_roll()
 
@@ -88,7 +89,6 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
         """ Raise error if theres no reroll nor exploding die value """
         if self.explode <= self.reroll_range + 1:
             raise ValueError("Inifinite rerolling die!")
-        # print("(L5rDie)viable roll")
 
     def get_adjust_modifier(self):
         return self.adjust_modifier
@@ -96,7 +96,7 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
     def adjustpool(self, rolled, kept):
         """ adjust pool as per L5R max 10 dice pool rules """
         modifier = 0
-        print(f"rolling {rolled}k{kept}")
+        pre_adjust = f"{rolled}k{kept}"
         while rolled > 11 and kept < 10:
             rolled -= 2
             kept += 1
@@ -110,7 +110,7 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
 
         self.adjust_modifier = modifier
 
-        print(f"Adjusted to: {rolled}k{kept}+{modifier}")
+        print(f"{pre_adjust} adjusted to: {rolled}k{kept}+{modifier}")
         return (rolled, kept)
 
     def roll(self, to_roll, to_keep):  # dice_ammount=1 precisa?
@@ -131,7 +131,12 @@ class L5rDie(ExplodingDie):  # ajeitar essa descendência (passar coisas pro
         rolls.reverse()
 
         total = sum(rolls[:to_keep]) + self.get_adjust_modifier()
-        return total, str((rolls, self.get_adjust_modifier()))
+        #return total, str((rolls, self.get_adjust_modifier()))
+
+        details = str(to_roll) + 'k' + str(to_keep) + '+' + \
+                  str(self.adjust_modifier) + str(rolls)
+
+        return total, details
 
 
 class SuccessDie(SimpleDie):
@@ -258,41 +263,7 @@ class PercentDie(SimpleDie):
         return success_status, str(rolls)
 
 
-# --------------------------------------------------------
-def clean_input(brute_string):
-    """ padronizing input string """
-    # string.punctuarion -> '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
-    string_punctuation = " !\"#$%&'()*,./:;<=>?@[\\]^_`{|}~"  # +,- |TODO multiroladas -> 5*1d20+1 -> [14,11,21,2,6]
-    # string.ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
-    string_unused_letters = "abcfghijlmnopqrstuvwyz"  # d,x,k,e
-    string_blicklisted = string_punctuation + string_unused_letters
-
-    string = brute_string.lower()
-
-    for char in string:
-        if char in string_blicklisted:
-            string = string.replace(char, "")
-
-    return string
-
-
-def interpret(string):
-    """
-    processes a string into a roll request
-
-    """
-
-    try:
-        if string[0] == "-":
-            string = "0" + string
-    except IndexError:
-        string = "0"
-    string = string.replace("+-", "-").replace("-", "+-")
-    print("Calculating:", string)
-    string_list = string.split("+")
-
-    return string_list
-
+# --------------old approach (edited/butchered)---------------------------
 
 def dice_thrower(string_list):
     ####falta implementar solicitar SuccessDie e solicitar PercentDie####
@@ -407,7 +378,53 @@ def roll():  # keep string part before ':' as roll describer -> Attack:1d20+5 ->
     else:
         return result_presenter(dice_thrower(interpret(clean_input(roll_me))))
 
-# ---------------------alternate approach--------------------
+# ---------------------ALTERNATE APPROACH--------------------
+def clean_input(brute_string, specific_die=None):
+    """ padronizing input string """
+    # string.punctuarion -> '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+    punctuation = " !\"#$%&'()*,./:;<=>?@[\\]^_`{|}~"  # +,- |TODO multiroladas -> 5*1d20+1 -> [14,11,21,2,6]
+    # string.ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
+    parameters = ''
+    die_idiosyncrasies = {'sr': ['abcefghijklmnopqrstuvwxyz', ''], # d
+                          'lr': ['abcdfghijlmnopqrstuvwyz', 'xe'], # k,x,e
+                          'wr': ['abcdefghijklmnopqrstuvwxyz', ''], # TODO
+                          'cr': ['abcdefghijklmnopqrstuvwxyz', ''], # TODO
+                          None: ['abcefghijklmnopqrstuvwxyz', '']} # d
+    
+    #print('specific_die:',specific_die)
+    string_blicklisted = punctuation + die_idiosyncrasies[specific_die][0]
+    #print('str-blisted:',string_blicklisted)
+
+    string = brute_string.lower()
+
+    for char in string:
+        if char in string_blicklisted:
+            string = string.replace(char, "")
+        elif char in die_idiosyncrasies[specific_die][1]:
+            parameters += char
+            string = string.replace(char, "")
+
+    return string, parameters
+
+
+def interpret(string):
+    """
+    processes a string into a roll request
+
+    """
+
+    try:
+        if string[0] == "-":
+            string = "0" + string
+    except IndexError:
+        string = "0"
+    string = string.replace("+-", "-").replace("-", "+-")
+    print("Calculating:", string)
+    string_list = string.split("+")
+
+    return string_list
+
+
 def howManyDie(item, die_notation):
     """given a die_notation type:string, retrieves number_of_dice tpy:int"""
     try:
@@ -421,7 +438,7 @@ def howManyDie(item, die_notation):
             number_of_dice = 1
     return number_of_dice
 
-def simple_roll(string_list):
+def simple_roll(string_list, parameters=None):
     modifier = 0
     results = [] # list of tuples from simpledie.roll()
     
@@ -446,9 +463,33 @@ def simple_roll(string_list):
     print(f'RESULT: {total} <sr roll details: {details}>')
     return
 
-def l5r_roll(): print('#lr'); pass
-def wod_roll(): print('#wr'); pass
-def cthulhu_roll(): print('#cr'); pass
+def l5r_roll(string_list, parameters):
+    modifier = 0
+    results = [] # list of tuples from l5rdie.roll()
+    
+    for item in string_list:
+        if 'k' in item:
+            try:
+                number_of_dice = howManyDie(item, 'k')
+                dice_kept = int(item.split('k')[1])
+            except ValueError:
+                raise ValueError(f'Oops! Could not understand this die roll(?): "{item}"')
+            else:
+                die = L5rDie(parameters)
+                results += die.roll(number_of_dice, dice_kept)
+        else:
+            try:
+                modifier += int(item)
+            except ValueError:
+                raise ValueError(f'Oops! Could not understand this modifier(?): "{item}"')
+
+    total = sum(results[::2])+modifier
+    details = ' ; '.join(results[1::2]) + ' ; modifier: ' + str(modifier)
+    print(f'RESULT: {total} <lr roll details: {details}>')
+    return
+
+def wod_roll(): print('#wr'); pass # TODO
+def cthulhu_roll(): print('#cr'); pass # TODO
 
 def check_for_die(brute_string):
     """checks input(str) for specific die roll"""
@@ -462,12 +503,22 @@ def check_for_die(brute_string):
         print('No specific roll command detected', interpret(clean_input(brute_string)) )
         return
 
-    string_list = interpret(clean_input(brute_string[2:])) #lista de rolagens
+    #print('brute',brute_string[2:], brute_string[:2])
 
-    specific_die[brute_string[:2]](string_list) #chamando a função pertinente
-    
-    #print( brute_string[:2],'calc:', interpret(clean_input(brute_string[2:])) )
-    return # interpret(clean_input(brute_string[2:]))
+    cleaned_string, parameters = clean_input(brute_string[2:], brute_string[:2])
+    string_list = interpret(cleaned_string)
+
+    #print('after clean_input and interpret:',string_list)
+    specific_die[brute_string[:2]](string_list, parameters) #chamando a função pertinente
+
+    return
+
+#------instâncias de dados------
+simpledie=SimpleDie(6)   # self,faces / roll(self,dice_ammount=0)
+explodingdie=ExplodingDie(6)   # self,faces / roll(self,dice_ammount=0) /getexplode
+l5rdie=L5rDie()   # (self, faces="10") / (self, to_roll, to_keep)
+successdie=SuccessDie()   # (self, faces=10, difficulty=6, is_max_double=False) / (self, pool_size=1)
+percentdie=PercentDie()   # (self, success_chance=None, bonus_die=0) / (self, chance=None, bonus_die=0)
 
 # =============================================================================
 # def dice_thrower(string_list):
@@ -521,10 +572,4 @@ def check_for_die(brute_string):
 #     return rolled_dice
 # =============================================================================
 
-
 #roll()
-simpledie=SimpleDie(6)   # self,faces / roll(self,dice_ammount=0)
-explodingdie=ExplodingDie(6)   # self,faces / roll(self,dice_ammount=0) /getexplode
-l5rdie=L5rDie()   # (self, faces="10") / (self, to_roll, to_keep)
-successdie=SuccessDie()   # (self, faces=10, difficulty=6, is_max_double=False) / (self, pool_size=1)
-percentdie=PercentDie()   # (self, success_chance=None, bonus_die=0) / (self, chance=None, bonus_die=0)
