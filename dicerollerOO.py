@@ -200,55 +200,40 @@ class PercentDie(SimpleDie):
     bonus/penalty die
     """
 
-    def __init__(self, success_chance=None, bonus_die=0):
+    def __init__(self):#, success_chance=None, bonus_die=0):
         """ initialize a die wich rolls over or under success threshold"""
-        self.success_chance = success_chance
-        self.bonus_die = bonus_die
+        #self.success_chance = int(success_chance)
+        #self.bonus_die = bonus_die
 
-    def set_chance(self, chance):
-        self.success_chance = chance
-
-    def get_chance(self):
-        return self.success_chance
-
-    def classify_success(self, result):
-        if self.get_chance() is None:
-            return None
+    def classify_success(self, result, chance):
+        if chance == 0 or chance is None: 
+            return "(Unknown success level)."
         if result == 1:
             success = "Critical Success!!!"
-        elif result <= self.get_chance() // 5:
+        elif result <= chance // 5:
             success = "Extreme Success!"
-        elif result <= self.get_chance() // 2:
+        elif result <= chance // 2:
             success = "Hard Success!"
-        elif result <= self.get_chance():
-            success = "Normal Success"
+        elif result <= chance:
+            success = "Normal Success."
         elif result <= 95:
-            success = "Fail"
-        elif result <= 99 and self.get_chance() >= 50:
-            success = "Fail"
+            success = "Fail."
+        elif result <= 99 and chance >= 50:
+            success = "Fail."
         else:
-            success = "Fumble!"
+            success = "Fumble!!!"
 
         return success
 
-    def roll(self, chance=None, bonus_die=None):
-        tens_die = 0
+    def roll(self, chance=None, bonus_die=0):
         unit_die = str(randint(0, 9))
         is_penalty = False
         rolls = []
 
-        if chance is None:
-            pass
-        else:
-            self.set_chance(chance)
-
-        if bonus_die == None:
-            bonus_die = self.bonus_die         
-
-        if bonus_die < 0:
+        if int(bonus_die) < 0:
             is_penalty = True
 
-        for die in range(1 + abs(bonus_die)):
+        for die in range(1 + abs(int(bonus_die))):
             tens_die = str(randint(0, 9))
             if tens_die == "0" and unit_die == "0":
                 rolls.append(100)
@@ -259,8 +244,15 @@ class PercentDie(SimpleDie):
         if is_penalty:
             rolls.reverse()
 
-        success_status = self.classify_success(rolls[0])
-        return success_status, str(rolls)
+        success_status = self.classify_success(rolls[0], int(chance))
+
+        result = str(rolls[0]) + ", " + success_status
+        if chance == '0':#or chance is None:
+            details = str(rolls) + " in " + '(Unknown)' + ' skill'
+        else:
+            details = str(rolls) + " in " + str(chance) + ' skill'
+
+        return result, details
 
 
 # --------------old approach (edited/butchered)---------------------------
@@ -382,6 +374,47 @@ def hidding_old_approach_in_this_function():
     return None
 # ---------------------ALTERNATE APPROACH--------------------
 
+def bot():  # keep string part before ':' as roll describer -> Attack:1d20+5 -> Attack:17 , [12],+5
+    """ coleta input do usuário para chamar rolagens ou ajuda, sai com 'exit'"""
+    while True:
+        brute_string = input("What's to be rolled? ")
+        if "help" == brute_string.lower()[0:4]:
+                print("provisory_help_message: type a roll after a prefix",\
+                      "and optional parameters <param>: sr (3d6+1d4+3),",\
+                      "wr (10s6<w><x>), lr (13k9<e><x><x>), cr (70<b><b><p>)")
+        elif "exit" in brute_string.lower()[0:4]:
+                return 
+        else:
+            check_for_die(brute_string)
+
+
+def check_for_die(brute_string): #TODO mensagem de ajuda e acertar a interface
+    """checks input(str) for specific die roll"""
+    #is_specific_roll = False
+    specific_die = {'sr': simple_roll,
+                    'lr': l5r_roll,
+                    'wr': wod_roll,
+                    'cr': cthulhu_roll}
+    if brute_string[:2] not in specific_die:
+        #is_specific_roll = True
+        print('No specific roll command detected')
+        #interpret(clean_input(brute_string))
+        cleaned_string, parameters = clean_input(brute_string, None)
+        string_list, parameters_list = interpret(cleaned_string), \
+                                       interpret(parameters)
+        return
+
+    #print('brute',brute_string[2:], brute_string[:2])
+
+    cleaned_string, parameters = clean_input(brute_string[2:], brute_string[:2])
+    string_list,parameters_list = interpret(cleaned_string),interpret(parameters)
+    #print("cfd sending to specific roll:", '+'.join(parameters_list))
+
+    specific_die[brute_string[:2]](string_list, parameters_list) #chamando a função pertinente
+
+    return
+
+
 def clean_input(brute_string, specific_die=None):
     """ padronizing input string """
     # string.punctuarion -> '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
@@ -420,39 +453,13 @@ def interpret(string):
         if string[0] == "-":
             string = "0" + string
     except IndexError:
+        #print('interpret() index error') #debug
         string = "0"
     string = string.replace("+-", "-").replace("-", "+-")
     #print("Calculating:", string)
     string_list = string.split("+")
 
     return string_list
-
-def check_for_die(brute_string):
-    """checks input(str) for specific die roll"""
-    #is_specific_roll = False
-    specific_die = {'sr': simple_roll,
-                    'lr': l5r_roll,
-                    'wr': wod_roll,
-                    'cr': cthulhu_roll}
-    if brute_string[:2] not in specific_die:
-        #is_specific_roll = True
-        print('No specific roll command detected', interpret(clean_input(brute_string)) )
-        return
-
-    #print('brute',brute_string[2:], brute_string[:2])
-
-    cleaned_string, parameters = clean_input(brute_string[2:], brute_string[:2])
-    string_list,parameters_list = interpret(cleaned_string),interpret(parameters)
-    print("cfd sending to specific roll:", '+'.join(parameters_list))
-# =============================================================================
-#     cleaned_string = clean_input(brute_string[2:], brute_string[:2])
-#     string_list, parameters = interpret(cleaned_string)
-# =============================================================================
-
-    #print('after clean_input and interpret:',string_list)
-    specific_die[brute_string[:2]](string_list, parameters_list) #chamando a função pertinente
-
-    return
 
 
 def howManyDie(item, die_notation):
@@ -494,6 +501,7 @@ def simple_roll(string_list, parameters=None):
     print(f'RESULT: {total} <sr roll details: {details}>')
     return
 
+
 def l5r_roll(string_list, parameters):
 
     modifier = 0
@@ -519,15 +527,22 @@ def l5r_roll(string_list, parameters):
 
     total = sum(results[::2])+modifier
     #print(f'l5r_roll results: {results}')
-    details = ' ; '.join(results[1::2]) + ' ; modifier: ' + str(modifier)
+    
+    if modifier == 0:
+        print(str(modifier),'if str(modifier) == 0:')
+        details = ' ; '.join(results[1::2])
+    else:
+        print(str(modifier),'if str(modifier) == 0:ELSE:')
+        details = ' ; '.join(results[1::2]) + ' ; other mods: ' + str(modifier)
+
     print(f'RESULT: {total} <lr roll details: {details}>')
-    return #TODO colocar soma parcial das parcelas nos details
+    return
 
 
 def wod_roll(string_list, parameters):
     modifier = 0
     results = [] # list of tuples from successdie.roll()
-    print('wodroll parameters:',parameters)
+    #print('wodroll parameters:',parameters)
     is_max_double = False
     will = ''
 
@@ -536,8 +551,8 @@ def wod_roll(string_list, parameters):
         if 'x' in itemP:
             is_max_double = True
 
-        if 'w' in parameters:
-            will = ' + Willpower'
+        if 'w' in itemP:
+            will = '+Will'
 
         if 's' in itemS:
             try:
@@ -557,28 +572,26 @@ def wod_roll(string_list, parameters):
     if modifier == 0:
         mod = ''
     else:
-        mod = ' + ' + str(modifier)
+        mod = '+' + str(modifier)
         
     total = sum(results[::2]) #+modifier
     details = ' ; '.join(results[1::2]) + ' ; modifier: ' + str(modifier)
-    print(f'{total} Successes{will}{mod}. <wr roll details: {details}>')
+    print(f'{total}{mod}{will} Successes. <wr roll details: {details}>')
     return
 
 def cthulhu_roll(string_list, parameters):# TODO
-    print('#cr')
     results = [] # list of tuples from successdie.roll()
-    print('xuluroll parameters:',parameters)
+    #print('xuluroll parameters:',parameters)
     
-    for item in string_list:
-        parameters = item.count('b') - item.count('p')
-        
-        #TODO try: item->success_chance
-        die = PercentDie(success,bonus_die)
-        results += die.roll(self,success,bonus)
+    for (itemS, itemP) in zip(string_list, parameters):
+        bonus_die = itemP.count('b') - itemP.count('p')
 
-    total = sum(results[::2]) #+modifier
-    details = ' ; '.join(results[1::2]) + ' ; modifier: ' + str(modifier)
-    print(f'{total} Successes{will}{mod}. <wr roll details: {details}>')
+        die = PercentDie()
+        results += die.roll(itemS, bonus_die)
+
+    total = ' <and> '.join(results[::2]) #+modifier
+    details = ' ; '.join(results[1::2]) #+ ' ; modifier: ' + str(modifier)
+    print(f'{total} <cr roll details: {details}>')
     return
 
 
@@ -587,6 +600,6 @@ simpledie=SimpleDie(6)   # self,faces / roll(self,dice_ammount=0)
 explodingdie=ExplodingDie(6)   # self,faces / roll(self,dice_ammount=0) /getexplode
 l5rdie=L5rDie()   # (self, parameters="", faces="10") / (self, to_roll, to_keep)
 successdie=SuccessDie()   # (self, faces=10, difficulty=6, is_max_double=False) / (self, pool_size=1)
-percentdie=PercentDie()   # (self, success_chance=None, bonus_die=0) / (self, chance=None, bonus_die=None)
+percentdie=PercentDie()   # (self) / (self, chance=None, bonus_die=0)
 
 #roll()
